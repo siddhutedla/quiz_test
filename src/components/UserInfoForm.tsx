@@ -57,11 +57,12 @@ export default function UserInfoForm({ onSubmit }: UserInfoFormProps) {
 
         if (error) {
           console.error('Error creating user:', error)
-          // Still proceed with the form submission even if database fails
+          // Show error to user but still allow quiz to proceed
+          alert('Warning: Could not save user information. Quiz will continue but results may not be saved.')
         }
 
         const userInfo = {
-          id: data?.[0]?.id || 'temp-user-id',
+          id: data?.[0]?.id || data?.id || 'temp-user-id',
           name: formData.name.trim(),
           email: formData.email.trim(),
           linkedin_url: formData.linkedin_url.trim() || undefined

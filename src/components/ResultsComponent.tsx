@@ -24,9 +24,17 @@ export default function ResultsComponent({ userInfo, quizAttempt, onRestart }: R
       setIsSubmitting(true)
       setSubmitError(null)
 
+      // Only submit if we have a valid user ID
+      if (!userInfo.id || userInfo.id === 'temp-user-id') {
+        console.warn('No valid user ID, skipping quiz attempt save')
+        setSubmitSuccess(true)
+        setIsSubmitting(false)
+        return
+      }
+
       // Submit in background without blocking UI
       supabaseDb.createQuizAttempt({
-        user_id: userInfo.id || 'temp-user-id',
+        user_id: userInfo.id,
         score: quizAttempt.score,
         total_questions: quizAttempt.total_questions,
         time_taken: quizAttempt.time_taken,

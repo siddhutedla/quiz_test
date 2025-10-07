@@ -59,15 +59,31 @@ export const supabaseDb = {
       return { data: [{ id: 'mock-user-id' }], error: null }
     }
 
+    console.log('Creating user with data:', userData)
+
+    // First try to find existing user by email
+    const { data: existingUser, error: findError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', userData.email)
+      .single()
+
+    if (existingUser && !findError) {
+      console.log('User already exists:', existingUser)
+      return { data: [existingUser], error: null }
+    }
+
+    // If user doesn't exist, create new one
     const { data, error } = await supabase
       .from('users')
-      .upsert({
+      .insert({
         name: userData.name,
         email: userData.email,
         linkedin_url: userData.linkedin_url,
       })
       .select()
 
+    console.log('User creation result:', { data, error })
     return { data, error }
   },
 
