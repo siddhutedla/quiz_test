@@ -40,6 +40,9 @@ interface QuizQuestion {
 }
 
 export default function AdminPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [password, setPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
   const [users, setUsers] = useState<User[]>([])
   const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>([])
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([])
@@ -49,8 +52,20 @@ export default function AdminPage() {
   const [selectedQuestion, setSelectedQuestion] = useState<QuizQuestion | null>(null)
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (isAuthenticated) {
+      loadData()
+    }
+  }, [isAuthenticated])
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (password === 'password') {
+      setIsAuthenticated(true)
+      setPasswordError('')
+    } else {
+      setPasswordError('Incorrect password')
+    }
+  }
 
   const loadData = async () => {
     try {
@@ -106,6 +121,47 @@ export default function AdminPage() {
     )
   }
 
+  // Password prompt
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Admin Access</h1>
+            <p className="text-gray-600">Enter password to access admin dashboard</p>
+          </div>
+          
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                placeholder="Enter password"
+                required
+              />
+              {passwordError && (
+                <p className="text-red-600 text-sm mt-1">{passwordError}</p>
+              )}
+            </div>
+            
+            <button
+              type="submit"
+              className="w-full bg-amber-500 text-white py-2 px-4 rounded-md hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors"
+            >
+              Access Admin Dashboard
+            </button>
+          </form>
+        </div>
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -133,6 +189,12 @@ export default function AdminPage() {
               className="bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors"
             >
               Refresh Data
+            </button>
+            <button
+              onClick={() => setIsAuthenticated(false)}
+              className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+            >
+              Logout
             </button>
           </div>
         </div>
