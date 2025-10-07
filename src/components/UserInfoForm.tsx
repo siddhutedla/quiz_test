@@ -62,7 +62,7 @@ export default function UserInfoForm({ onSubmit }: UserInfoFormProps) {
         }
 
         const userInfo = {
-          id: data?.[0]?.id || data?.id || 'temp-user-id',
+          id: data?.[0]?.id || 'temp-user-id',
           name: formData.name.trim(),
           email: formData.email.trim(),
           linkedin_url: formData.linkedin_url.trim() || undefined
