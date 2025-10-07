@@ -50,12 +50,46 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'attempts' | 'questions'>('attempts')
   const [selectedAttempt, setSelectedAttempt] = useState<QuizAttempt | null>(null)
   const [selectedQuestion, setSelectedQuestion] = useState<QuizQuestion | null>(null)
+  const [starredAttempts, setStarredAttempts] = useState<Set<string>>(new Set())
+  const [sortByStarred, setSortByStarred] = useState(false)
 
   useEffect(() => {
     if (isAuthenticated) {
       loadData()
+      // Load starred items from localStorage
+      const saved = localStorage.getItem('starredAttempts')
+      if (saved) {
+        setStarredAttempts(new Set(JSON.parse(saved)))
+      }
     }
   }, [isAuthenticated])
+
+  const toggleStar = (attemptId: string) => {
+    setStarredAttempts(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(attemptId)) {
+        newSet.delete(attemptId)
+      } else {
+        newSet.add(attemptId)
+      }
+      // Save to localStorage
+      localStorage.setItem('starredAttempts', JSON.stringify(Array.from(newSet)))
+      return newSet
+    })
+  }
+
+  const getSortedAttempts = () => {
+    if (!sortByStarred) {
+      return quizAttempts
+    }
+    return [...quizAttempts].sort((a, b) => {
+      const aStarred = starredAttempts.has(a.id)
+      const bStarred = starredAttempts.has(b.id)
+      if (aStarred && !bStarred) return -1
+      if (!aStarred && bStarred) return 1
+      return 0
+    })
+  }
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -229,13 +263,24 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'attempts' && (
           <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-lg font-semibold text-gray-900">All Quiz Attempts</h2>
+              <button
+                onClick={() => setSortByStarred(!sortByStarred)}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  sortByStarred 
+                    ? 'bg-amber-500 text-white hover:bg-amber-600' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {sortByStarred ? '⭐ Showing Starred First' : 'Show Starred First'}
+              </button>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Star</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">LinkedIn</th>
@@ -246,10 +291,19 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {quizAttempts.map((attempt) => {
+                  {getSortedAttempts().map((attempt) => {
                     const user = users.find(u => u.id === attempt.user_id)
+                    const isStarred = starredAttempts.has(attempt.id)
                     return (
                       <tr key={attempt.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => toggleStar(attempt.id)}
+                            className="text-2xl hover:scale-110 transition-transform"
+                          >
+                            {isStarred ? '⭐' : '☆'}
+                          </button>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{user?.name || 'Unknown'}</div>
                         </td>
