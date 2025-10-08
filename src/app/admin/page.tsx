@@ -335,10 +335,10 @@ export default function AdminPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(attempt.completed_at).toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <td className="px-6 py-4 text-sm font-medium">
                           <button
                             onClick={() => setSelectedAttempt(attempt)}
-                            className="text-amber-600 hover:text-amber-900"
+                            className="text-amber-600 hover:text-amber-900 whitespace-nowrap"
                           >
                             View Answers
                           </button>
@@ -490,23 +490,44 @@ export default function AdminPage() {
                 <div className="lg:col-span-2">
                   <h4 className="font-medium text-gray-900 mb-4">All Answers</h4>
                   <div className="space-y-4 max-h-96 overflow-y-auto">
-                    {selectedAttempt.answers.map((answer, index) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="text-sm font-medium text-gray-900">Question {answer.question_id}</span>
-                          {answer.is_correct !== null && (
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              answer.is_correct ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}>
-                              {answer.is_correct ? 'Correct' : 'Incorrect'}
-                            </span>
+                    {selectedAttempt.answers.map((answer, index) => {
+                      const question = quizQuestions.find(q => q.id === answer.question_id)
+                      return (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1">
+                              <span className="text-sm font-medium text-gray-900">Question {answer.question_id}</span>
+                              {question && (
+                                <p className="text-sm text-gray-700 mt-2 font-medium">
+                                  {question.question}
+                                </p>
+                              )}
+                            </div>
+                            {answer.is_correct !== null && (
+                              <span className={`text-xs px-2 py-1 rounded-full ml-2 flex-shrink-0 ${
+                                answer.is_correct ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
+                                {answer.is_correct ? 'Correct' : 'Incorrect'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-500 mb-1">User&apos;s Answer:</p>
+                            <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded border-l-4 border-blue-500">
+                              {answer.selected_answer || 'No answer provided'}
+                            </p>
+                          </div>
+                          {question?.correct_answer && answer.is_correct === false && (
+                            <div className="mt-2">
+                              <p className="text-xs text-gray-500 mb-1">Correct Answer:</p>
+                              <p className="text-sm text-green-700 bg-green-50 p-3 rounded border-l-4 border-green-500">
+                                {question.correct_answer}
+                              </p>
+                            </div>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
-                          {answer.selected_answer || 'No answer provided'}
-                        </p>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               </div>
