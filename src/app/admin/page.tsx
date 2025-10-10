@@ -334,17 +334,27 @@ export default function AdminPage() {
               </button>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full divide-y divide-gray-200 table-fixed">
+                <colgroup>
+                  <col style={{width: '60px'}} />
+                  <col style={{width: '150px'}} />
+                  <col style={{width: '200px'}} />
+                  <col style={{width: '120px'}} />
+                  <col style={{width: '150px'}} />
+                  <col style={{width: '100px'}} />
+                  <col style={{width: '180px'}} />
+                  <col style={{width: '140px'}} />
+                </colgroup>
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Star</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">LinkedIn</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completed</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Star</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">LinkedIn</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completed</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -353,7 +363,7 @@ export default function AdminPage() {
                     const isStarred = starredAttempts.has(attempt.id)
                     return (
                       <tr key={attempt.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-4 whitespace-nowrap">
                           <button
                             onClick={() => toggleStar(attempt.id)}
                             className="text-2xl hover:scale-110 transition-transform"
@@ -361,13 +371,13 @@ export default function AdminPage() {
                             {isStarred ? '⭐' : '☆'}
                           </button>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{user?.name || 'Unknown'}</div>
+                        <td className="px-4 py-4">
+                          <div className="text-sm font-medium text-gray-900 truncate">{user?.name || 'Unknown'}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{user?.email || 'No email'}</div>
+                        <td className="px-4 py-4">
+                          <div className="text-sm text-gray-900 truncate">{user?.email || 'No email'}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-4 whitespace-nowrap">
                           {user?.linkedin_url ? (
                             <a 
                               href={user.linkedin_url} 
@@ -381,29 +391,29 @@ export default function AdminPage() {
                             <span className="text-gray-400 text-sm">Not provided</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-4 whitespace-nowrap">
                           <div className={`text-sm font-medium px-3 py-1 rounded-full inline-block ${getScoreColor(attempt.score_percentage)}`}>
                             {attempt.score}/{attempt.total_questions} ({attempt.score_percentage.toFixed(1)}%)
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                           {formatTime(attempt.time_taken)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(attempt.completed_at).toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 text-sm font-medium">
-                          <div className="flex flex-col gap-2">
+                        <td className="px-4 py-4 text-sm font-medium">
+                          <div className="flex flex-col gap-1.5">
                             <button
                               onClick={() => setSelectedAttempt(attempt)}
-                              className="text-amber-600 hover:text-amber-900 whitespace-nowrap text-left"
+                              className="text-amber-600 hover:text-amber-900 text-left text-xs"
                             >
                               View Answers
                             </button>
                             <button
                               onClick={() => handleSendEmail(attempt, user)}
                               disabled={sendingEmail.has(attempt.id)}
-                              className={`whitespace-nowrap text-left ${
+                              className={`text-left text-xs ${
                                 emailStatus[attempt.id] === 'success' 
                                   ? 'text-green-600 hover:text-green-900' 
                                   : emailStatus[attempt.id] === 'error'
@@ -414,7 +424,7 @@ export default function AdminPage() {
                               {sendingEmail.has(attempt.id) 
                                 ? '⏳ Sending...' 
                                 : emailStatus[attempt.id] === 'success'
-                                ? '✓ Email Sent'
+                                ? '✓ Sent'
                                 : emailStatus[attempt.id] === 'error'
                                 ? '✗ Failed'
                                 : '📧 Send Email'}
