@@ -52,6 +52,63 @@ export default function AdminPage() {
   const [selectedQuestion, setSelectedQuestion] = useState<QuizQuestion | null>(null)
   const [starredAttempts, setStarredAttempts] = useState<Set<string>>(new Set())
   const [sortByStarred, setSortByStarred] = useState(false)
+  const [sendingEmail, setSendingEmail] = useState<Set<string>>(new Set())
+  const [emailStatus, setEmailStatus] = useState<{[key: string]: 'success' | 'error'}>({})
+
+  const handleSendEmail = async (attempt: QuizAttempt, user: User | undefined) => {
+    if (!user) return
+    
+    setSendingEmail(prev => new Set(prev).add(attempt.id))
+    setEmailStatus(prev => {
+      const newStatus = {...prev}
+      delete newStatus[attempt.id]
+      return newStatus
+    })
+    
+    try {
+      const response = await fetch('https://n8n-test-3ndm.onrender.com/webhook/7a0c202f-c430-4d28-a4c1-9b43d300cf39', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          attemptId: attempt.id,
+          userName: user.name,
+          userEmail: user.email,
+          linkedinUrl: user.linkedin_url,
+          score: attempt.score,
+          totalQuestions: attempt.total_questions,
+          scorePercentage: attempt.score_percentage,
+          timeTaken: attempt.time_taken,
+          completedAt: attempt.completed_at,
+          categoryScores: attempt.category_scores,
+          answers: attempt.answers
+        })
+      })
+      
+      if (response.ok) {
+        setEmailStatus(prev => ({...prev, [attempt.id]: 'success'}))
+        setTimeout(() => {
+          setEmailStatus(prev => {
+            const newStatus = {...prev}
+            delete newStatus[attempt.id]
+            return newStatus
+          })
+        }, 3000)
+      } else {
+        setEmailStatus(prev => ({...prev, [attempt.id]: 'error'}))
+      }
+    } catch (error) {
+      console.error('Error sending email:', error)
+      setEmailStatus(prev => ({...prev, [attempt.id]: 'error'}))
+    } finally {
+      setSendingEmail(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(attempt.id)
+        return newSet
+      })
+    }
+  }
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -336,12 +393,33 @@ export default function AdminPage() {
                           {new Date(attempt.completed_at).toLocaleString()}
                         </td>
                         <td className="px-6 py-4 text-sm font-medium">
-                          <button
-                            onClick={() => setSelectedAttempt(attempt)}
-                            className="text-amber-600 hover:text-amber-900 whitespace-nowrap"
-                          >
-                            View Answers
-                          </button>
+                          <div className="flex flex-col gap-2">
+                            <button
+                              onClick={() => setSelectedAttempt(attempt)}
+                              className="text-amber-600 hover:text-amber-900 whitespace-nowrap text-left"
+                            >
+                              View Answers
+                            </button>
+                            <button
+                              onClick={() => handleSendEmail(attempt, user)}
+                              disabled={sendingEmail.has(attempt.id)}
+                              className={`whitespace-nowrap text-left ${
+                                emailStatus[attempt.id] === 'success' 
+                                  ? 'text-green-600 hover:text-green-900' 
+                                  : emailStatus[attempt.id] === 'error'
+                                  ? 'text-red-600 hover:text-red-900'
+                                  : 'text-blue-600 hover:text-blue-900'
+                              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                              {sendingEmail.has(attempt.id) 
+                                ? '⏳ Sending...' 
+                                : emailStatus[attempt.id] === 'success'
+                                ? '✓ Email Sent'
+                                : emailStatus[attempt.id] === 'error'
+                                ? '✗ Failed'
+                                : '📧 Send Email'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     )
