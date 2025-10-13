@@ -53,7 +53,8 @@ export default function AdminPage() {
   const [starredAttempts, setStarredAttempts] = useState<Set<string>>(new Set())
   const [sortByStarred, setSortByStarred] = useState(false)
   const [sendingEmail, setSendingEmail] = useState<Set<string>>(new Set())
-  const [emailStatus, setEmailStatus] = useState<{[key: string]: 'success' | 'error'}>({})
+  const [emailSentAttempts, setEmailSentAttempts] = useState<Set<string>>(new Set())
+  const [emailStatus, setEmailStatus] = useState<{[key: string]: 'error'}>({})
 
   const handleSendEmail = async (attempt: QuizAttempt, user: User | undefined) => {
     if (!user) return
@@ -72,29 +73,21 @@ export default function AdminPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          attemptId: attempt.id,
           userName: user.name,
           userEmail: user.email,
           linkedinUrl: user.linkedin_url,
-          score: attempt.score,
-          totalQuestions: attempt.total_questions,
-          scorePercentage: attempt.score_percentage,
-          timeTaken: attempt.time_taken,
-          completedAt: attempt.completed_at,
-          categoryScores: attempt.category_scores,
-          answers: attempt.answers
+          scorePercentage: attempt.score_percentage
         })
       })
       
       if (response.ok) {
-        setEmailStatus(prev => ({...prev, [attempt.id]: 'success'}))
-        setTimeout(() => {
-          setEmailStatus(prev => {
-            const newStatus = {...prev}
-            delete newStatus[attempt.id]
-            return newStatus
-          })
-        }, 3000)
+        setEmailSentAttempts(prev => {
+          const newSet = new Set(prev)
+          newSet.add(attempt.id)
+          // Save to localStorage
+          localStorage.setItem('emailSentAttempts', JSON.stringify(Array.from(newSet)))
+          return newSet
+        })
       } else {
         setEmailStatus(prev => ({...prev, [attempt.id]: 'error'}))
       }
@@ -117,6 +110,11 @@ export default function AdminPage() {
       const saved = localStorage.getItem('starredAttempts')
       if (saved) {
         setStarredAttempts(new Set(JSON.parse(saved)))
+      }
+      // Load email sent items from localStorage
+      const savedEmails = localStorage.getItem('emailSentAttempts')
+      if (savedEmails) {
+        setEmailSentAttempts(new Set(JSON.parse(savedEmails)))
       }
     }
   }, [isAuthenticated])
@@ -412,10 +410,10 @@ export default function AdminPage() {
                             </button>
                             <button
                               onClick={() => handleSendEmail(attempt, user)}
-                              disabled={sendingEmail.has(attempt.id)}
+                              disabled={sendingEmail.has(attempt.id) || emailSentAttempts.has(attempt.id)}
                               className={`text-left text-xs ${
-                                emailStatus[attempt.id] === 'success' 
-                                  ? 'text-green-600 hover:text-green-900' 
+                                emailSentAttempts.has(attempt.id)
+                                  ? 'text-green-600' 
                                   : emailStatus[attempt.id] === 'error'
                                   ? 'text-red-600 hover:text-red-900'
                                   : 'text-blue-600 hover:text-blue-900'
@@ -423,7 +421,7 @@ export default function AdminPage() {
                             >
                               {sendingEmail.has(attempt.id) 
                                 ? '⏳ Sending...' 
-                                : emailStatus[attempt.id] === 'success'
+                                : emailSentAttempts.has(attempt.id)
                                 ? '✓ Sent'
                                 : emailStatus[attempt.id] === 'error'
                                 ? '✗ Failed'

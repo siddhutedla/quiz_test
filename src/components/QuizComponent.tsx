@@ -617,7 +617,7 @@ const SAMPLE_QUESTIONS: Question[] = [
   }
 ]
 
-const QUIZ_DURATION = 18 * 60 // 18 minutes in seconds
+const QUIZ_DURATION = 20 * 60 // 20 minutes in seconds
 
 export default function QuizComponent({ userInfo, onComplete }: QuizComponentProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
