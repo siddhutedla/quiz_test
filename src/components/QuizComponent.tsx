@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { UserInfo, QuizAttempt, QuizAnswer } from '@/lib/supabase'
+import { UserInfo, QuizAttempt, QuizAnswer, supabaseDb } from '@/lib/supabase'
 import { useIsClient } from '@/hooks/useIsClient'
 
 interface Question {
@@ -624,7 +624,42 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
   const [answers, setAnswers] = useState<{[key: number]: string}>({})
   const [timeLeft, setTimeLeft] = useState(QUIZ_DURATION)
   const [quizStarted, setQuizStarted] = useState(false)
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [loadingQuestions, setLoadingQuestions] = useState(true)
   const isClient = useIsClient()
+
+  // Fetch questions from database on mount
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const response = await supabaseDb.getAllQuizQuestions()
+        if (response.data && response.data.length > 0) {
+          // Transform database format to component format
+          const transformedQuestions: Question[] = response.data.map(q => ({
+            id: q.id,
+            question: q.question,
+            options: q.options as string[] | undefined,
+            correct_answer: q.correct_answer,
+            category: q.category || 'General',
+            type: (q.type as 'multiple_choice' | 'short_answer' | 'long_answer') || 'multiple_choice',
+            max_length: q.max_length
+          }))
+          setQuestions(transformedQuestions)
+        } else {
+          // Fallback to sample questions if database is empty
+          setQuestions(SAMPLE_QUESTIONS)
+        }
+      } catch (error) {
+        console.error('Error fetching questions:', error)
+        // Fallback to sample questions on error
+        setQuestions(SAMPLE_QUESTIONS)
+      } finally {
+        setLoadingQuestions(false)
+      }
+    }
+    
+    fetchQuestions()
+  }, [])
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60)
@@ -639,7 +674,7 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
   }
 
   const handleSubmitQuiz = useCallback(() => {
-    const quizAnswers: QuizAnswer[] = SAMPLE_QUESTIONS.map(q => {
+    const quizAnswers: QuizAnswer[] = questions.map(q => {
       const isMultipleChoice = q.type === 'multiple_choice'
       return {
         question_id: q.id,
@@ -649,7 +684,7 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
     })
 
     // Only score multiple choice questions
-    const multipleChoiceQuestions = SAMPLE_QUESTIONS.filter(q => q.type === 'multiple_choice')
+    const multipleChoiceQuestions = questions.filter(q => q.type === 'multiple_choice')
     const score = quizAnswers.filter(a => a.is_correct === true).length
     const timeTaken = QUIZ_DURATION - timeLeft
     const scorePercentage = Math.round((score / multipleChoiceQuestions.length) * 100)
@@ -678,7 +713,7 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
     }
 
     onComplete(attempt)
-  }, [answers, timeLeft, userInfo, onComplete])
+  }, [answers, timeLeft, userInfo, onComplete, questions])
 
   useEffect(() => {
     if (!quizStarted) return
@@ -699,12 +734,12 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
   const handleAnswerSelect = (answer: string) => {
     setAnswers(prev => ({
       ...prev,
-      [SAMPLE_QUESTIONS[currentQuestionIndex].id]: answer
+      [questions[currentQuestionIndex].id]: answer
     }))
   }
 
   const handleNext = () => {
-    if (currentQuestionIndex < SAMPLE_QUESTIONS.length - 1) {
+    if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1)
     }
   }
@@ -732,6 +767,36 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
     )
   }
 
+  // Show loading state while fetching questions
+  if (loadingQuestions) {
+    return (
+      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-3xl mx-auto text-center">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded mb-4 mx-auto max-w-md"></div>
+          <div className="h-4 bg-gray-200 rounded mb-2 mx-auto max-w-xs"></div>
+          <div className="h-4 bg-gray-200 rounded mb-8 mx-auto max-w-sm"></div>
+          <div className="h-12 bg-gray-200 rounded mx-auto max-w-xs"></div>
+        </div>
+        <p className="text-gray-600 mt-4">Loading quiz questions...</p>
+      </div>
+    )
+  }
+
+  // Show error if no questions loaded
+  if (questions.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-3xl mx-auto text-center">
+        <div className="text-red-600 mb-4">
+          <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Quiz</h2>
+        <p className="text-gray-600">Unable to load quiz questions. Please try again later.</p>
+      </div>
+    )
+  }
+
   if (!quizStarted) {
     return (
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-3xl mx-auto text-center">
@@ -746,7 +811,7 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
           </h2>
           <p className="text-gray-600 text-lg">
             Hello <span className="font-semibold text-amber-600">{userInfo.name}</span>! 
-            You&apos;re about to begin a 50-question quiz with a 15-minute time limit.
+            You&apos;re about to begin a {questions.length}-question quiz with a 20-minute time limit.
           </p>
         </div>
 
@@ -757,25 +822,13 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
                 <svg className="w-5 h-5 text-amber-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
-                43 multiple choice questions
+                {questions.length} questions total
               </li>
               <li className="flex items-center">
                 <svg className="w-5 h-5 text-amber-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
-                8 short answer questions (1-2 sentences)
-              </li>
-              <li className="flex items-center">
-                <svg className="w-5 h-5 text-amber-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                2 long answer questions (detailed responses)
-              </li>
-              <li className="flex items-center">
-                <svg className="w-5 h-5 text-amber-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                15 minute time limit
+                20 minute time limit
               </li>
               <li className="flex items-center">
                 <svg className="w-5 h-5 text-amber-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -796,8 +849,8 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
     )
   }
 
-  const currentQuestion = SAMPLE_QUESTIONS[currentQuestionIndex]
-  const progress = ((currentQuestionIndex + 1) / SAMPLE_QUESTIONS.length) * 100
+  const currentQuestion = questions[currentQuestionIndex]
+  const progress = ((currentQuestionIndex + 1) / questions.length) * 100
 
   return (
     <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-4xl mx-auto">
@@ -805,7 +858,7 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">
-            Question {currentQuestionIndex + 1} of {SAMPLE_QUESTIONS.length}
+            Question {currentQuestionIndex + 1} of {questions.length}
           </h2>
           <p className="text-gray-600">{currentQuestion.category}</p>
         </div>
@@ -903,7 +956,7 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
         </button>
 
         <div className="flex space-x-4">
-          {currentQuestionIndex === SAMPLE_QUESTIONS.length - 1 ? (
+          {currentQuestionIndex === questions.length - 1 ? (
             <button
               onClick={handleSubmitQuiz}
               className="bg-gradient-to-r from-green-500 to-green-600 text-white font-bold py-3 px-8 rounded-lg hover:from-green-600 hover:to-green-700 transform hover:scale-105 transition-all duration-200 shadow-lg"
@@ -925,7 +978,7 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
       <div className="mt-8">
         <h4 className="text-sm font-semibold text-gray-700 mb-4">Jump to Question:</h4>
         <div className="grid grid-cols-10 gap-2">
-          {SAMPLE_QUESTIONS.map((question, index) => {
+          {questions.map((question, index) => {
             const questionType = question.type
             const hasAnswer = answers[question.id]
             const isCurrent = index === currentQuestionIndex
