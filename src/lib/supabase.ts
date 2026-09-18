@@ -40,8 +40,10 @@ export interface QuizAttempt {
 export type QuizAttemptWithUser = QuizAttempt & { id: string; completed_at: string; user: UserInfo | null }
 
 // Initialize Supabase client
+// Supabase's dashboard calls the key PUBLISHABLE_KEY; older setups call it ANON_KEY. Accept both.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseAnonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 export const supabase = (() => {
   try {
