@@ -191,9 +191,9 @@ export default function UserInfoForm({ onSubmit }: UserInfoFormProps) {
           <div>
             <h4 className="font-semibold text-amber-800 mb-1">Quiz Information</h4>
             <ul className="text-sm text-amber-700 space-y-1">
-              <li>• 50 multiple choice questions</li>
-              <li>• 15 minute time limit</li>
-              <li>• Questions cover various topics</li>
+              <li>• 50 multiple choice questions across 5 sections</li>
+              <li>• About 26 minutes total — each question has a suggested time</li>
+              <li>• Covers instruction following, operations judgment, factory &amp; customer communication, and English</li>
               <li>• You can review your answers before submitting</li>
             </ul>
           </div>

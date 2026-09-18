@@ -1,11 +1,23 @@
 import { createClient } from '@supabase/supabase-js'
+import type { GradedAnswer, SectionScore, TimingSummary, Grade } from '@/lib/grading'
 
-// Database types (matching Prisma schema)
+// Row types (snake_case, matching the Supabase tables)
 export interface UserInfo {
   id?: string
   name: string
   email: string
   linkedin_url?: string
+  created_at?: string
+}
+
+export interface QuizQuestionRow {
+  id: number
+  section: string
+  question: string
+  options: Record<string, string> // { A: '...', B: '...', C: '...', D: '...' }
+  correct_answer: string
+  ideal_time_sec: number
+  max_time_sec: number
   created_at?: string
 }
 
@@ -15,28 +27,27 @@ export interface QuizAttempt {
   score: number
   total_questions: number
   time_taken: number
-  answers: QuizAnswer[]
+  answers: GradedAnswer[]
   score_percentage: number
-  category_scores?: {[category: string]: {correct: number, total: number}}
+  timing_score: number
+  weighted_score: number
+  grade: Grade
+  section_scores: Record<string, SectionScore>
+  timing_summary: TimingSummary
   completed_at?: string
 }
 
-export interface QuizAnswer {
-  question_id: number
-  selected_answer: string
-  is_correct: boolean | null
-}
+export type QuizAttemptWithUser = QuizAttempt & { id: string; completed_at: string; user: UserInfo | null }
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-// Create Supabase client only if we have valid credentials
 export const supabase = (() => {
   try {
-    if (supabaseUrl && supabaseAnonKey && 
-        supabaseUrl.startsWith('http') && 
-        supabaseAnonKey.startsWith('eyJ')) {
+    if (supabaseUrl && supabaseAnonKey &&
+        supabaseUrl.startsWith('http') &&
+        supabaseAnonKey.length > 20) {
       return createClient(supabaseUrl, supabaseAnonKey)
     }
     return null
@@ -46,10 +57,7 @@ export const supabase = (() => {
   }
 })()
 
-// Helper function to check if Supabase is configured
-export const isSupabaseConfigured = () => {
-  return !!(supabaseUrl && supabaseAnonKey)
-}
+export const isSupabaseConfigured = () => !!supabase
 
 // Database operations using Supabase
 export const supabaseDb = {
@@ -59,21 +67,17 @@ export const supabaseDb = {
       return { data: [{ id: 'mock-user-id' }], error: null }
     }
 
-    console.log('Creating user with data:', userData)
-
-    // First try to find existing user by email
-    const { data: existingUser, error: findError } = await supabase
+    // Reuse an existing user with the same email
+    const { data: existingUser } = await supabase
       .from('users')
       .select('*')
       .eq('email', userData.email)
-      .single()
+      .maybeSingle()
 
-    if (existingUser && !findError) {
-      console.log('User already exists:', existingUser)
+    if (existingUser) {
       return { data: [existingUser], error: null }
     }
 
-    // If user doesn't exist, create new one
     const { data, error } = await supabase
       .from('users')
       .insert({
@@ -83,7 +87,6 @@ export const supabaseDb = {
       })
       .select()
 
-    console.log('User creation result:', { data, error })
     return { data, error }
   },
 
@@ -93,7 +96,6 @@ export const supabaseDb = {
       return { data: null, error: null }
     }
 
-    // Optimized insert without .select() for faster performance
     const { data, error } = await supabase
       .from('quiz_attempts')
       .insert({
@@ -103,38 +105,12 @@ export const supabaseDb = {
         time_taken: attemptData.time_taken,
         answers: attemptData.answers,
         score_percentage: attemptData.score_percentage,
-        category_scores: attemptData.category_scores,
+        timing_score: attemptData.timing_score,
+        weighted_score: attemptData.weighted_score,
+        grade: attemptData.grade,
+        section_scores: attemptData.section_scores,
+        timing_summary: attemptData.timing_summary,
       })
-
-    return { data, error }
-  },
-
-  async getUserByEmail(email: string) {
-    if (!supabase) {
-      console.warn('Supabase not configured, using mock data')
-      return { data: null, error: null }
-    }
-
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single()
-
-    return { data, error }
-  },
-
-  async getQuizAttemptsByUserId(userId: string) {
-    if (!supabase) {
-      console.warn('Supabase not configured, using mock data')
-      return { data: [], error: null }
-    }
-
-    const { data, error } = await supabase
-      .from('quiz_attempts')
-      .select('*')
-      .eq('user_id', userId)
-      .order('completed_at', { ascending: false })
 
     return { data, error }
   },
@@ -142,24 +118,21 @@ export const supabaseDb = {
   async getAllQuizAttempts() {
     if (!supabase) {
       console.warn('Supabase not configured, using mock data')
-      return { data: [], error: null }
+      return { data: [] as QuizAttemptWithUser[], error: null }
     }
 
     const { data, error } = await supabase
       .from('quiz_attempts')
-      .select(`
-        *,
-        user:users(*)
-      `)
+      .select(`*, user:users(*)`)
       .order('completed_at', { ascending: false })
 
-    return { data, error }
+    return { data: (data ?? []) as QuizAttemptWithUser[], error }
   },
 
   async getAllUsers() {
     if (!supabase) {
       console.warn('Supabase not configured, using mock data')
-      return { data: [], error: null }
+      return { data: [] as UserInfo[], error: null }
     }
 
     const { data, error } = await supabase
@@ -167,13 +140,13 @@ export const supabaseDb = {
       .select('*')
       .order('created_at', { ascending: false })
 
-    return { data, error }
+    return { data: (data ?? []) as UserInfo[], error }
   },
 
   async getAllQuizQuestions() {
     if (!supabase) {
       console.warn('Supabase not configured, using mock data')
-      return { data: [], error: null }
+      return { data: [] as QuizQuestionRow[], error: null }
     }
 
     const { data, error } = await supabase
@@ -181,6 +154,6 @@ export const supabaseDb = {
       .select('*')
       .order('id', { ascending: true })
 
-    return { data, error }
+    return { data: (data ?? []) as QuizQuestionRow[], error }
   }
 }

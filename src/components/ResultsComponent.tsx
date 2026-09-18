@@ -40,13 +40,16 @@ export default function ResultsComponent({ userInfo, quizAttempt, onRestart }: R
         time_taken: quizAttempt.time_taken,
         answers: quizAttempt.answers,
         score_percentage: quizAttempt.score_percentage,
-        category_scores: quizAttempt.category_scores
+        timing_score: quizAttempt.timing_score,
+        weighted_score: quizAttempt.weighted_score,
+        grade: quizAttempt.grade,
+        section_scores: quizAttempt.section_scores,
+        timing_summary: quizAttempt.timing_summary,
       }).then(({ error }) => {
         if (error) {
           console.error('Error creating quiz attempt:', error)
           setSubmitError('Failed to save quiz results: ' + error.message)
         } else {
-          console.log('Quiz attempt saved successfully!')
           setSubmitSuccess(true)
         }
         setIsSubmitting(false)
@@ -55,13 +58,6 @@ export default function ResultsComponent({ userInfo, quizAttempt, onRestart }: R
         setSubmitError(error instanceof Error ? error.message : 'Failed to submit results')
         setIsSubmitting(false)
       })
-
-      // Show success immediately for better UX
-      setTimeout(() => {
-        if (!submitError) {
-          setSubmitSuccess(true)
-        }
-      }, 1000)
     }
 
     submitResults()
