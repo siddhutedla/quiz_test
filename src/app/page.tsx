@@ -58,7 +58,7 @@ export default function Home() {
               Golden Prints Quiz
             </h1>
             <p className="text-amber-100 text-lg">
-              Test Your Knowledge • 50 Questions • 18 Minutes
+              Test Your Knowledge • 50 Questions • 26 Minutes
             </p>
           </div>
         </div>

@@ -1,3 +1,7 @@
+// NOTE: this database is shared with the order-manager app. These models are
+// used ONLY by scripts/db-setup.ts to seed questions. Never run `prisma db push`
+// or `prisma migrate` here — the schema is applied from db/schema.sql.
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -16,7 +20,7 @@ model User {
   createdAt    DateTime?     @default(now()) @map("created_at") @db.Timestamptz(6)
   quizAttempts QuizAttempt[]
 
-  @@map("users")
+  @@map("quiz_candidates")
 }
 
 model QuizAttempt {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { UserInfo, QuizAttempt, supabaseDb } from '@/lib/supabase'
 import { useIsClient } from '@/hooks/useIsClient'
 
@@ -15,11 +15,13 @@ export default function ResultsComponent({ userInfo, quizAttempt, onRestart }: R
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const isClient = useIsClient()
-
+  // Ref (not state) so React StrictMode's double effect run can't save twice
+  const hasSubmittedRef = useRef(false)
 
   useEffect(() => {
     const submitResults = async () => {
-      if (submitSuccess || isSubmitting) return
+      if (hasSubmittedRef.current) return
+      hasSubmittedRef.current = true
 
       setIsSubmitting(true)
       setSubmitError(null)

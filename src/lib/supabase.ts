@@ -71,7 +71,7 @@ export const supabaseDb = {
 
     // Reuse an existing user with the same email
     const { data: existingUser } = await supabase
-      .from('users')
+      .from('quiz_candidates')
       .select('*')
       .eq('email', userData.email)
       .maybeSingle()
@@ -81,7 +81,7 @@ export const supabaseDb = {
     }
 
     const { data, error } = await supabase
-      .from('users')
+      .from('quiz_candidates')
       .insert({
         name: userData.name,
         email: userData.email,
@@ -125,7 +125,7 @@ export const supabaseDb = {
 
     const { data, error } = await supabase
       .from('quiz_attempts')
-      .select(`*, user:users(*)`)
+      .select(`*, user:quiz_candidates(*)`)
       .order('completed_at', { ascending: false })
 
     return { data: (data ?? []) as QuizAttemptWithUser[], error }
@@ -138,7 +138,7 @@ export const supabaseDb = {
     }
 
     const { data, error } = await supabase
-      .from('users')
+      .from('quiz_candidates')
       .select('*')
       .order('created_at', { ascending: false })
 

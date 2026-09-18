@@ -8,11 +8,8 @@
     "start": "bun run next start",
     "lint": "bun run eslint",
     "db:generate": "bunx prisma generate",
-    "db:push": "bunx prisma db push",
-    "db:migrate": "bunx prisma migrate dev",
     "db:studio": "bunx prisma studio",
-    "db:reset": "bunx prisma migrate reset",
-    "db:setup": "bunx prisma generate && bunx prisma db push --accept-data-loss && bun run scripts/db-setup.ts",
+    "db:setup": "bunx prisma generate && bunx prisma db execute --file db/schema.sql --schema prisma/schema.prisma && bun run scripts/db-setup.ts",
     "db:seed": "bun run scripts/db-setup.ts"
   },
   "dependencies": {
