@@ -6,7 +6,7 @@ export interface UserInfo {
   id?: string
   name: string
   email: string
-  linkedin_url?: string
+  linkedin_url?: string | null // required by the form; older rows may be null
   created_at?: string
 }
 

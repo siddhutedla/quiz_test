@@ -28,8 +28,10 @@ export default function UserInfoForm({ onSubmit }: UserInfoFormProps) {
       newErrors.email = 'Please enter a valid email address'
     }
 
-    if (formData.linkedin_url && !formData.linkedin_url.includes('linkedin.com')) {
-      newErrors.linkedin_url = 'Please enter a valid LinkedIn URL'
+    if (!formData.linkedin_url.trim()) {
+      newErrors.linkedin_url = 'LinkedIn profile is required'
+    } else if (!/^(https?:\/\/)?([a-z0-9-]+\.)?linkedin\.com\/.+/i.test(formData.linkedin_url.trim())) {
+      newErrors.linkedin_url = 'Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/your-name)'
     }
 
     setErrors(newErrors)
@@ -43,14 +45,14 @@ export default function UserInfoForm({ onSubmit }: UserInfoFormProps) {
         console.log('Creating user:', {
           name: formData.name.trim(),
           email: formData.email.trim(),
-          linkedin_url: formData.linkedin_url.trim() || undefined,
+          linkedin_url: formData.linkedin_url.trim(),
         })
 
         // Create or update user in Supabase
         const { data, error } = await supabaseDb.createUser({
           name: formData.name.trim(),
           email: formData.email.trim(),
-          linkedin_url: formData.linkedin_url.trim() || undefined,
+          linkedin_url: formData.linkedin_url.trim(),
         })
 
         console.log('User creation result:', { data, error })
@@ -65,7 +67,7 @@ export default function UserInfoForm({ onSubmit }: UserInfoFormProps) {
           id: data?.[0]?.id || 'temp-user-id',
           name: formData.name.trim(),
           email: formData.email.trim(),
-          linkedin_url: formData.linkedin_url.trim() || undefined
+          linkedin_url: formData.linkedin_url.trim()
         }
 
         console.log('Submitting user info:', userInfo)
@@ -76,7 +78,7 @@ export default function UserInfoForm({ onSubmit }: UserInfoFormProps) {
         onSubmit({
           name: formData.name.trim(),
           email: formData.email.trim(),
-          linkedin_url: formData.linkedin_url.trim() || undefined
+          linkedin_url: formData.linkedin_url.trim()
         })
       }
     }
@@ -157,7 +159,7 @@ export default function UserInfoForm({ onSubmit }: UserInfoFormProps) {
 
         <div>
           <label htmlFor="linkedin_url" className="block text-sm font-semibold text-gray-700 mb-2">
-            LinkedIn Profile (Optional)
+            LinkedIn Profile *
           </label>
           <input
             type="url"

@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS public.quiz_candidates (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name         varchar(255) NOT NULL,
   email        varchar(255) NOT NULL UNIQUE,
-  linkedin_url varchar(500),
+  linkedin_url varchar(500), -- required by the form; nullable here so older rows still load
   created_at   timestamptz DEFAULT now()
 );
 
