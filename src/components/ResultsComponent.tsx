@@ -47,6 +47,7 @@ export default function ResultsComponent({ userInfo, quizAttempt, onRestart }: R
         grade: quizAttempt.grade,
         section_scores: quizAttempt.section_scores,
         timing_summary: quizAttempt.timing_summary,
+        tab_switches: quizAttempt.tab_switches ?? 0,
       }).then(({ error }) => {
         if (error) {
           console.error('Error creating quiz attempt:', error)

@@ -36,8 +36,11 @@ CREATE TABLE IF NOT EXISTS public.quiz_attempts (
   grade            varchar(2),
   section_scores   jsonb,
   timing_summary   jsonb,
+  tab_switches     integer DEFAULT 0,
   completed_at     timestamptz DEFAULT now()
 );
+-- Existing installs: CREATE TABLE IF NOT EXISTS will not add new columns
+ALTER TABLE public.quiz_attempts ADD COLUMN IF NOT EXISTS tab_switches integer DEFAULT 0;
 CREATE INDEX IF NOT EXISTS quiz_attempts_user_id_idx ON public.quiz_attempts (user_id);
 CREATE INDEX IF NOT EXISTS quiz_attempts_completed_at_idx ON public.quiz_attempts (completed_at);
 

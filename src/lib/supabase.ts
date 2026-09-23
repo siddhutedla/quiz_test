@@ -34,6 +34,8 @@ export interface QuizAttempt {
   grade: Grade
   section_scores: Record<string, SectionScore>
   timing_summary: TimingSummary
+  /** Times the candidate left / hid the quiz tab during the attempt */
+  tab_switches?: number
   completed_at?: string
 }
 
@@ -112,6 +114,7 @@ export const supabaseDb = {
         grade: attemptData.grade,
         section_scores: attemptData.section_scores,
         timing_summary: attemptData.timing_summary,
+        tab_switches: attemptData.tab_switches ?? 0,
       })
 
     return { data, error }
