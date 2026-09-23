@@ -329,13 +329,14 @@ export default function AdminPage() {
     )
 
   const exportCsv = () => {
-    const header = ['Name', 'Email', 'LinkedIn', 'Grade', 'Weighted Score', 'Accuracy %', 'Correct', 'Total', 'Timing %', 'Time Taken (s)', 'Completed',
+    const header = ['Name', 'Email', 'LinkedIn', 'Grade', 'Weighted Score', 'Accuracy %', 'Correct', 'Total', 'Timing %', 'Time Taken (s)', 'Tab Switches', 'Completed',
       ...sections.map(s => `${sectionLabel(s)} %`)]
     const rows = visibleAttempts.map(a => {
       const u = userFor(a)
       return [
         u?.name ?? '', u?.email ?? '', u?.linkedin_url ?? '', attemptGrade(a), attemptWeighted(a).toFixed(1),
         num(a.score_percentage).toFixed(1), a.score, a.total_questions, num(a.timing_score).toFixed(1), a.time_taken,
+        a.tab_switches ?? 0,
         new Date(a.completed_at).toISOString(),
         ...sections.map(s => a.section_scores?.[s]?.pct ?? ''),
       ]
@@ -555,6 +556,11 @@ export default function AdminPage() {
                               LinkedIn ↗
                             </a>
                           )}
+                          {(attempt.tab_switches ?? 0) > 0 && (
+                            <div className="text-xs text-red-600 mt-1" title="Times the candidate left the quiz tab">
+                              {attempt.tab_switches} tab switch{attempt.tab_switches === 1 ? '' : 'es'}
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-2">
@@ -772,6 +778,22 @@ export default function AdminPage() {
                         <dd className="text-lg font-semibold text-gray-900">{formatSeconds(selectedAttempt.time_taken)}</dd>
                       </div>
                     </dl>
+
+                    <div className={`rounded-lg p-3 border ${
+                      (selectedAttempt.tab_switches ?? 0) > 0
+                        ? 'bg-red-50 border-red-200'
+                        : 'bg-gray-50 border-transparent'
+                    }`}>
+                      <div className="text-xs text-gray-500">Tab switches</div>
+                      <div className={`text-lg font-semibold ${
+                        (selectedAttempt.tab_switches ?? 0) > 0 ? 'text-red-700' : 'text-gray-900'
+                      }`}>
+                        {selectedAttempt.tab_switches ?? 0}
+                      </div>
+                      {(selectedAttempt.tab_switches ?? 0) > 0 && (
+                        <div className="text-xs text-red-600 mt-1">Candidate left this tab during the quiz</div>
+                      )}
+                    </div>
 
                     {ts && (
                       <div>

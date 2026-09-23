@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { UserInfo, QuizAttempt, QuizQuestionRow, supabaseDb } from '@/lib/supabase'
 import { useIsClient } from '@/hooks/useIsClient'
+import { useQuizProctoring } from '@/hooks/useQuizProctoring'
 import { QUESTIONS } from '@/data/questions'
 import { gradeAttempt, sectionLabel, formatSeconds } from '@/lib/grading'
 
@@ -35,6 +36,8 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
   const [loadingQuestions, setLoadingQuestions] = useState(true)
   const submittedRef = useRef(false)
   const isClient = useIsClient()
+  const { tabSwitches, tabSwitchesRef, showLeaveWarning, dismissWarning } =
+    useQuizProctoring(quizStarted)
 
   // Fetch questions from database on mount
   useEffect(() => {
@@ -92,10 +95,11 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
       grade: graded.grade,
       section_scores: graded.section_scores,
       timing_summary: graded.timing_summary,
+      tab_switches: tabSwitchesRef.current,
     }
 
     onComplete(attempt)
-  }, [answers, timeSpent, timeLeft, quizDuration, userInfo, onComplete, questions])
+  }, [answers, timeSpent, timeLeft, quizDuration, userInfo, onComplete, questions, tabSwitchesRef])
 
   // One ticker: counts the overall clock down and the current question's time up
   useEffect(() => {
@@ -209,8 +213,10 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
             {[
               `${questions.length} multiple-choice questions across ${sections.length} sections`,
               `${formatSeconds(quizDuration)} total time limit`,
-              'Each question has a suggested time — try to stay within it, speed counts',
+              'Speed counts toward your score — work steadily and don’t linger',
               'You can navigate between questions before submitting',
+              'Stay on this tab — leaving or switching tabs is recorded',
+              'Copying, pasting, and right-click are disabled during the quiz',
             ].map(rule => (
               <li key={rule} className="flex items-start">
                 <svg className="w-5 h-5 text-amber-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -241,16 +247,31 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
 
   const currentQuestion = questions[currentQuestionIndex]
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100
-  const spent = timeSpent[currentQuestion.id] || 0
-  const budgetPct = Math.min(100, (spent / currentQuestion.max_time_sec) * 100)
-  const budgetColor =
-    spent <= currentQuestion.ideal_time_sec ? 'bg-green-500'
-    : spent <= currentQuestion.max_time_sec ? 'bg-yellow-500'
-    : 'bg-red-500'
   const answeredCount = Object.keys(answers).length
 
   return (
-    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-4xl mx-auto">
+    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-4xl mx-auto select-none">
+      {showLeaveWarning && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 flex items-start gap-3">
+          <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-red-800">Tab switch detected</p>
+            <p className="text-sm text-red-700 mt-1">
+              Leaving this page is recorded. You have switched away {tabSwitches} time{tabSwitches === 1 ? '' : 's'}.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={dismissWarning}
+            className="text-sm font-medium text-red-700 hover:text-red-900"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
@@ -264,6 +285,11 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
             {formatSeconds(timeLeft)}
           </div>
           <div className="text-xs text-gray-500">time remaining</div>
+          {tabSwitches > 0 && (
+            <div className="text-xs text-red-600 mt-1">
+              {tabSwitches} tab switch{tabSwitches === 1 ? '' : 'es'}
+            </div>
+          )}
         </div>
       </div>
 
@@ -279,15 +305,6 @@ export default function QuizComponent({ userInfo, onComplete }: QuizComponentPro
             style={{ width: `${progress}%` }}
           ></div>
         </div>
-      </div>
-
-      {/* Per-question time budget */}
-      <div className="mb-6 flex items-center gap-3 text-xs text-gray-500">
-        <span className="whitespace-nowrap">Suggested time: {currentQuestion.ideal_time_sec}s</span>
-        <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
-          <div className={`h-1.5 rounded-full transition-all ${budgetColor}`} style={{ width: `${budgetPct}%` }}></div>
-        </div>
-        <span className="whitespace-nowrap tabular-nums">{spent}s</span>
       </div>
 
       {/* Question */}
